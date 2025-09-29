@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Helio Windows CSS-only</title>
+<style>
+/* --- Body & Desktop --- */
+body, html { margin:0; padding:0; width:100%; height:100%; font-family:"Segoe UI",sans-serif; overflow:hidden; background:linear-gradient(#1e1e1e,#2b2b2b); }
+#desktop { position:absolute; top:0; left:0; right:0; bottom:40px; }
+/* --- Icons --- */
+.icon { width:60px; text-align:center; margin:10px; display:inline-block; cursor:pointer; color:white; }
+.icon-shape { width:48px; height:48px; margin:auto; border-radius:6px; background:linear-gradient(135deg,#555,#888); position:relative; }
+.icon.terminal .icon-shape::after { content:'>'; position:absolute; color:white; font-weight:bold; font-size:24px; top:6px; left:12px; }
+.icon.notepad .icon-shape::after { content:''; position:absolute; width:30px; height:2px; background:white; top:8px; left:8px; box-shadow:0 6px white,0 12px white; }
+/* --- Taskbar --- */
+#taskbar { position:fixed; bottom:0; left:0; right:0; height:40px; background:#222; display:flex; align-items:center; color:white; }
+#startBtn { width:60px; text-align:center; cursor:pointer; border-right:1px solid #555; background:linear-gradient(#666,#333); border-radius:3px; margin-left:5px; padding:5px; text-align:center; }
+#taskbarApps { flex:1; display:flex; }
+#clock { width:80px; text-align:center; }
+/* --- Start menu --- */
+#startMenu { position:fixed; bottom:40px; left:0; width:200px; background:#333; color:white; display:none; flex-direction:column; }
+.menuItem { padding:5px; cursor:pointer; border-bottom:1px solid #444; }
+.menuItem:hover { background:#555; }
+/* --- Windows --- */
+.window { position:absolute; top:100px; left:100px; width:300px; height:200px; background:#444; border:1px solid #666; box-shadow:2px 2px 8px rgba(0,0,0,0.5); }
+.titlebar { background:#666; padding:2px 5px; cursor:move; display:flex; justify-content:space-between; align-items:center; }
+.content { padding:5px; height: calc(100% - 24px); overflow:auto; }
+textarea { width:100%; height:100%; background:#222; color:white; border:none; resize:none; }
+button { background:#aa3333; border:none; color:white; width:20px; height:20px; border-radius:50%; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<div id="desktop">
+  <div class="icon terminal" onclick="openApp('Terminal')">
+    <div class="icon-shape"></div><span>Terminal</span>
+  </div>
+  <div class="icon notepad" onclick="openApp('Notepad')">
+    <div class="icon-shape"></div><span>Notepad</span>
+  </div>
+</div>
+
+<div id="taskbar">
+  <div id="startBtn" onclick="toggleStartMenu()">Start</div>
+  <div id="taskbarApps"></div>
+  <div id="clock"></div>
+</div>
+
+<div id="startMenu">
+  <div class="menuItem" onclick="openApp('Terminal')">Terminal</div>
+  <div class="menuItem" onclick="openApp('Notepad')">Notepad</div>
+</div>
+
+<div id="windows"></div>
+
+<script>
+// Start menu toggle
+function toggleStartMenu(){
+  let menu = document.getElementById('startMenu');
+  menu.style.display = menu.style.display==='flex'?'none':'flex';
+}
+// Clock
+function updateClock(){
+  let now = new Date();
+  document.getElementById('clock').innerText = now.toLocaleTimeString();
+}
+setInterval(updateClock,1000); updateClock();
+
+// Open app
+function openApp(name){
+  let win = document.createElement('div');
+  win.className='window';
+  let inner='';
+  if(name==='Terminal'){
+    inner = `<textarea readonly id="terminal">Welcome to HelioOS Terminal\nType 'help'\n$ </textarea>`;
+  } else if(name==='Notepad'){
+    inner = `<textarea id="notepad">${localStorage.getItem('notepad')||''}</textarea>`;
+  }
+  win.innerHTML = `<div class="titlebar">${name} <button onclick="this.parentElement.parentElement.remove()">X</button></div>
+                   <div class="content">${inner}</div>`;
+  document.getElementById('windows').appendChild(win);
+  addDraggable(win);
+
+  // Save notepad
+  if(name==='Notepad'){
+    win.querySelector('textarea').addEventListener('input', e=>{
+      localStorage.setItem('notepad', e.target.value);
+    });
+  }
+}
+
+// Draggable windows
+function addDraggable(el){
+  let offsetX, offsetY, dragging=false;
+  let title = el.querySelector('.titlebar');
+  title.onmousedown = function(e){ dragging=true; offsetX=e.clientX-el.offsetLeft; offsetY=e.clientY-el.offsetTop; }
+  document.onmousemove = function(e){ if(dragging){ el.style.left=e.clientX-offsetX+'px'; el.style.top=e.clientY-offsetY+'px'; } }
+  document.onmouseup = function(){ dragging=false; }
+}
+
+// Terminal commands (basic)
+function terminalCommand(cmd){
+  let term = document.getElementById('terminal');
+  let lines = term.value.split('\n');
+  if(cmd==='help'){ lines.push('Commands: help, dir, clear'); }
+  else if(cmd==='dir'){ lines.push('C:\\Windows\nC:\\Program Files\nC:\\Users'); }
+  else if(cmd==='clear'){ lines=['$ ']; }
+  else{ lines.push('Unknown command'); }
+  term.value = lines.join('\n')+'\n$ ';
+}
+</script>
+</body>
+</html>
